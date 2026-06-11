@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.flight_cache/
+.streamlit/secrets.toml
+.git/
+.gitignore
+.env
+*.log
+.DS_Store
+node_modules/

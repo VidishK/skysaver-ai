@@ -11,7 +11,7 @@ Schema details are documented in schema.md.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import certifi
@@ -29,6 +29,7 @@ load_dotenv()
 
 _DB_NAME = "skysaver"
 _TRIPS_COLLECTION = "trips"
+_USERS_COLLECTION = "users"
 
 _client: MongoClient | None = None
 
@@ -144,6 +145,50 @@ def set_leg_status(trip_id: str, leg_id: str, status: str) -> bool:
     return update_leg(trip_id, leg_id, {"status": status})
 
 
+def add_leg(trip_id: str, leg: dict[str, Any]) -> bool:
+    """Append a new leg to a trip. Returns True on success."""
+    if "leg_id" not in leg:
+        raise ValueError("Leg must include a leg_id")
+    coll = get_trips_collection()
+    result = coll.update_one(
+        {"_id": trip_id},
+        {
+            "$push": {"legs": leg},
+            "$set": {"updated_at": _now()},
+        },
+    )
+    return result.modified_count > 0
+
+
+def delete_leg(trip_id: str, leg_id: str) -> bool:
+    """Remove a leg from a trip by leg_id."""
+    coll = get_trips_collection()
+    result = coll.update_one(
+        {"_id": trip_id},
+        {
+            "$pull": {"legs": {"leg_id": leg_id}},
+            "$set": {"updated_at": _now()},
+        },
+    )
+    return result.modified_count > 0
+
+
+def next_leg_id(trip: dict[str, Any]) -> str:
+    """Generate the next sequential leg_id like 'leg_007' based on existing legs."""
+    used: set[int] = set()
+    for leg in trip.get("legs", []):
+        lid = leg.get("leg_id", "")
+        if lid.startswith("leg_"):
+            try:
+                used.add(int(lid.split("_", 1)[1]))
+            except ValueError:
+                continue
+    n = 1
+    while n in used:
+        n += 1
+    return f"leg_{n:03d}"
+
+
 # ---------------------------------------------------------------------------
 # Disruption logging
 # ---------------------------------------------------------------------------
@@ -164,3 +209,133 @@ def log_disruption(trip_id: str, disruption: dict[str, Any]) -> bool:
         },
     )
     return result.modified_count > 0
+
+
+# ---------------------------------------------------------------------------
+# User accounts
+# ---------------------------------------------------------------------------
+
+import hashlib  # noqa: E402  (kept near user code for clarity)
+
+
+def get_users_collection() -> Collection:
+    """Return the users collection handle."""
+    return get_db()[_USERS_COLLECTION]
+
+
+def _hash_password(password: str, salt: str = "skysaver-static-salt-2026") -> str:
+    """Hash a password with SHA-256 + a static salt.
+
+    This is deliberately simple for a hackathon demo. Production code should
+    use bcrypt/argon2 with a per-user random salt. The hash is one-way — the
+    plain password is never stored or recoverable.
+    """
+    h = hashlib.sha256()
+    h.update((salt + password).encode("utf-8"))
+    return h.hexdigest()
+
+
+def create_user(name: str, email: str, password: str) -> dict[str, Any] | None:
+    """Create a new user. Returns the user document on success, or None if the
+    email is already registered."""
+    email = email.strip().lower()
+    coll = get_users_collection()
+    if coll.find_one({"email": email}):
+        return None
+    user = {
+        "_id": email,
+        "name": name.strip(),
+        "email": email,
+        "password_hash": _hash_password(password),
+        "created_at": _now(),
+        "last_login_at": _now(),
+        "login_count": 1,
+    }
+    coll.insert_one(user)
+    return {k: v for k, v in user.items() if k != "password_hash"}
+
+
+def authenticate_user(email: str, password: str) -> dict[str, Any] | None:
+    """Validate email/password. Returns the safe user document on success.
+    Also stamps last_login_at and increments login_count."""
+    email = email.strip().lower()
+    coll = get_users_collection()
+    user = coll.find_one({"email": email})
+    if user is None:
+        return None
+    if user.get("password_hash") != _hash_password(password):
+        return None
+    coll.update_one(
+        {"email": email},
+        {
+            "$set": {"last_login_at": _now()},
+            "$inc": {"login_count": 1},
+        },
+    )
+    user = coll.find_one({"email": email})
+    return {k: v for k, v in user.items() if k != "password_hash"}
+
+
+def list_users() -> list[dict[str, Any]]:
+    """Return all users (without password hashes)."""
+    return [
+        {k: v for k, v in u.items() if k != "password_hash"}
+        for u in get_users_collection().find({})
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Sessions (persistent login tokens)
+# ---------------------------------------------------------------------------
+
+import secrets  # noqa: E402
+
+_SESSIONS_COLLECTION = "sessions"
+_SESSION_TTL_DAYS = 30
+
+
+def get_sessions_collection() -> Collection:
+    return get_db()[_SESSIONS_COLLECTION]
+
+
+def create_session_token(email: str) -> str:
+    """Generate a session token for a user, persist it, return it."""
+    email = email.strip().lower()
+    token = secrets.token_urlsafe(32)
+    expires_at = (
+        datetime.now(timezone.utc) + timedelta(days=_SESSION_TTL_DAYS)
+    ).isoformat(timespec="seconds").replace("+00:00", "Z")
+    get_sessions_collection().insert_one({
+        "_id": token,
+        "email": email,
+        "created_at": _now(),
+        "expires_at": expires_at,
+    })
+    return token
+
+
+def lookup_session_token(token: str) -> dict[str, Any] | None:
+    """Return the user document for a valid, unexpired session token, else None."""
+    if not token:
+        return None
+    sess = get_sessions_collection().find_one({"_id": token})
+    if sess is None:
+        return None
+    expires_at = sess.get("expires_at", "")
+    if expires_at and expires_at < _now():
+        # Expired — clean it up.
+        get_sessions_collection().delete_one({"_id": token})
+        return None
+    email = sess.get("email")
+    user = get_users_collection().find_one({"email": email})
+    if user is None:
+        return None
+    return {k: v for k, v in user.items() if k != "password_hash"}
+
+
+def delete_session_token(token: str) -> None:
+    """Invalidate a session token (e.g. on sign out)."""
+    if token:
+        get_sessions_collection().delete_one({"_id": token})
+
+

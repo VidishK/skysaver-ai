@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SkySaver AI — Sign in</title>
+<link rel="stylesheet" href="styles/tokens.css" />
+<style>
+  body { background:#fff; }
+  .auth { display:grid; grid-template-columns: 1fr 1fr; min-height:100vh; }
+  /* left hero */
+  .auth-hero { position:relative; overflow:hidden; padding:48px; display:flex; flex-direction:column; color:#fff;
+    background: radial-gradient(130% 130% at 15% 10%, #4F46E5 0%, #6D28D9 45%, #BE185D 100%); }
+  .auth-hero .glow { position:absolute; inset:0; background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.12) 1px, transparent 0); background-size:26px 26px; }
+  .ah-brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:19px; letter-spacing:-.02em; text-decoration:none; color:#fff; position:relative; z-index:2; }
+  .ah-brand .mark { width:32px; height:32px; border-radius:9px; background:rgba(255,255,255,.18); display:grid; place-items:center; }
+  .ah-brand .mark svg { width:18px; height:18px; }
+  .ah-mid { margin:auto 0; position:relative; z-index:2; }
+  .ah-mid h1 { font-size:44px; line-height:1.05; letter-spacing:-.03em; font-weight:800; margin:0 0 18px; max-width:440px; }
+  .ah-mid p { font-size:17px; line-height:1.6; color:rgba(255,255,255,.82); max-width:420px; margin:0; }
+  .ah-cards { display:flex; flex-direction:column; gap:12px; margin-top:36px; max-width:400px; }
+  .ah-card { background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); backdrop-filter:blur(10px); border-radius:14px; padding:15px 16px; display:flex; align-items:center; gap:13px; }
+  .ah-card .ic { width:38px; height:38px; border-radius:10px; background:rgba(255,255,255,.16); display:grid; place-items:center; flex-shrink:0; }
+  .ah-card .ic svg { width:19px; height:19px; }
+  .ah-card b { font-size:14px; display:block; }
+  .ah-card span { font-size:12.5px; color:rgba(255,255,255,.7); }
+  .ah-foot { position:relative; z-index:2; font-size:13px; color:rgba(255,255,255,.6); }
+
+  /* right form */
+  .auth-form-wrap { display:flex; align-items:center; justify-content:center; padding:48px; }
+  .auth-form { width:100%; max-width:400px; }
+  .af-head h2 { font-size:28px; font-weight:800; letter-spacing:-.025em; margin:0 0 7px; }
+  .af-head p { font-size:14.5px; color:var(--slate-500); margin:0 0 26px; }
+  .google-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:11px; padding:13px; border:1px solid var(--slate-200); border-radius:12px; background:#fff; font-family:var(--font-sans); font-size:14.5px; font-weight:600; color:var(--slate-800); cursor:pointer; transition: all .18s; }
+  .google-btn:hover { border-color:var(--slate-300); box-shadow:var(--sh-sm); }
+  .divider { display:flex; align-items:center; gap:14px; margin:22px 0; color:var(--slate-400); font-size:12.5px; }
+  .divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--slate-200); }
+  .fld { margin-bottom:16px; }
+  .fld label { display:block; font-size:12.5px; font-weight:600; color:var(--slate-600); margin-bottom:7px; }
+  .fld input { width:100%; border:1px solid var(--slate-200); border-radius:12px; padding:13px 15px; font-family:var(--font-sans); font-size:14.5px; outline:none; transition: border-color .18s, box-shadow .18s; }
+  .fld input:focus { border-color:var(--indigo-400); box-shadow:0 0 0 3px rgba(99,102,241,.14); }
+  .pw-reqs { display:flex; flex-direction:column; gap:6px; margin:10px 0 4px; }
+  .pw-req { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--slate-400); transition: color .2s; }
+  .pw-req.ok { color:#047857; }
+  .pw-req .rdot { width:15px; height:15px; border-radius:50%; border:1.5px solid currentColor; display:grid; place-items:center; flex-shrink:0; }
+  .pw-req.ok .rdot { background:var(--emerald-500); border-color:var(--emerald-500); color:#fff; }
+  .pw-req .rdot svg { width:9px; height:9px; opacity:0; }
+  .pw-req.ok .rdot svg { opacity:1; }
+  .af-submit { width:100%; margin-top:8px; }
+  .af-switch { text-align:center; font-size:14px; color:var(--slate-500); margin-top:22px; }
+  .af-switch a { color:var(--indigo-600); font-weight:600; text-decoration:none; cursor:pointer; }
+  .af-switch a:hover { text-decoration:underline; }
+  .forgot { font-size:13px; color:var(--indigo-600); text-decoration:none; font-weight:600; }
+  @media (max-width:880px){ .auth { grid-template-columns:1fr; } .auth-hero { display:none; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="app/api.js"></script>
+<script type="text/babel" src="app/icons.jsx"></script>
+<script type="text/babel">
+const { useState } = React;
+
+function Check() { return <Icon name="check" size={9} stroke={3} />; }
+
+function Auth() {
+  const [mode, setMode] = useState('signin');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [pw, setPw] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const signup = mode === 'signup';
+  const reqs = [
+    { label: 'At least 8 characters', ok: pw.length >= 8 },
+    { label: 'One uppercase letter', ok: /[A-Z]/.test(pw) },
+    { label: 'One number', ok: /[0-9]/.test(pw) },
+  ];
+
+  async function submit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    setError('');
+    if (!email || !pw) { setError('Email and password are required.'); return; }
+    if (signup && !name.trim()) { setError('Please enter your name.'); return; }
+    if (signup && !reqs.every(r => r.ok)) { setError('Password must meet all requirements.'); return; }
+    setBusy(true);
+    try {
+      if (signup) {
+        await window.SkyAPI.auth.signup(name.trim(), email.trim(), pw);
+        window.location.href = '/plan.html';
+      } else {
+        await window.SkyAPI.auth.login(email.trim(), pw);
+        window.location.href = '/app.html';
+      }
+    } catch (err) {
+      setError(err && err.message || 'Something went wrong.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="auth">
+      <div className="auth-hero">
+        <div className="glow" />
+        <a className="ah-brand" href="/index.html">
+          <span className="mark"><Icon name="plane" size={18} stroke={2.2} /></span>
+          SkySaver <span style={{fontWeight:500,opacity:.7}}>AI</span>
+        </a>
+        <div className="ah-mid">
+          <h1>Travel that handles itself.</h1>
+          <p>Add your trip once. SkySaver watches every leg 24/7 and has your alternative ready before you even know something broke.</p>
+          <div className="ah-cards">
+            <div className="ah-card"><div className="ic"><Icon name="shield" size={19}/></div><div><b>24/7 monitoring</b><span>Disruptions caught before the airline emails you</span></div></div>
+            <div className="ah-card"><div className="ic"><Icon name="route" size={19}/></div><div><b>Cascade-aware recovery</b><span>See the ripple across your whole trip</span></div></div>
+            <div className="ah-card"><div className="ic"><Icon name="sparkles" size={19}/></div><div><b>Powered by Gemini</b><span>Reads your confirmations, answers your questions</span></div></div>
+          </div>
+        </div>
+        <div className="ah-foot">© 2026 SkySaver AI · Gemini 2.5 Flash · MongoDB Atlas</div>
+      </div>
+
+      <div className="auth-form-wrap">
+        <div className="auth-form">
+          <div className="af-head">
+            <h2>{signup ? 'Create your account' : 'Welcome back'}</h2>
+            <p>{signup ? 'Start watching your next trip — free.' : 'Sign in to your travel guardian.'}</p>
+          </div>
+
+          <form onSubmit={submit}>
+          {signup && (
+            <div className="fld"><label>Full name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Maya Kapoor" /></div>
+          )}
+          <div className="fld"><label>Email</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" /></div>
+          <div className="fld">
+            <label>Password</label>
+            <input type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="••••••••" />
+            {signup && (
+              <div className="pw-reqs">
+                {reqs.map((r,i)=>(
+                  <div key={i} className={'pw-req'+(r.ok?' ok':'')}><span className="rdot"><Check/></span>{r.label}</div>
+                ))}
+              </div>
+            )}
+          </div>
+          {!signup && <div style={{textAlign:'right', marginBottom:18, marginTop:-4}}><a className="forgot">Forgot password?</a></div>}
+
+          {error && <div style={{background:'#FEF2F2', border:'1px solid #FECACA', color:'#991B1B', padding:'10px 12px', borderRadius:10, fontSize:13.5, marginBottom:14}}>{error}</div>}
+
+          <button type="submit" className="btn btn-primary btn-lg af-submit" disabled={busy} style={{width:'100%', cursor: busy ? 'wait' : 'pointer'}}>
+            {busy ? (signup ? 'Creating…' : 'Signing in…') : (signup ? 'Create account' : 'Sign in')} <Icon name="arrowRight" size={16}/>
+          </button>
+          </form>
+
+          <div className="af-switch">
+            {signup ? 'Already have an account? ' : "Don't have an account? "}
+            <a onClick={()=>{setMode(signup?'signin':'signup'); setPw('');}}>{signup ? 'Sign in' : 'Sign up free'}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Auth/>);
+</script>
+</body>
+</html>

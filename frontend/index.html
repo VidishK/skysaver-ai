@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SkySaver AI — Travel that handles itself</title>
+<link rel="stylesheet" href="styles/tokens.css" />
+<style>
+  body { background: #fff; overflow-x: hidden; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+  a { color: inherit; }
+
+  /* ============ NAV ============ */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 66px; display: flex; align-items: center;
+    transition: background .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease);
+    border-bottom: 1px solid transparent;
+  }
+  .nav.scrolled {
+    background: rgba(255,255,255,.82); backdrop-filter: saturate(180%) blur(18px);
+    border-bottom: 1px solid var(--slate-200); box-shadow: 0 1px 0 rgba(15,23,42,.02);
+  }
+  .nav .wrap { display:flex; align-items:center; justify-content:space-between; width:100%; }
+  .brand { display:flex; align-items:center; gap:9px; font-weight:800; font-size:18px; letter-spacing:-.02em; text-decoration:none; }
+  .brand .mark {
+    width:30px; height:30px; border-radius:9px; background: var(--grad-brand);
+    display:grid; place-items:center; box-shadow: 0 4px 12px -2px rgba(99,102,241,.5);
+  }
+  .brand .mark svg { width:17px; height:17px; color:#fff; }
+  .nav-links { display:flex; gap:30px; }
+  .nav-links a { text-decoration:none; font-size:14.5px; font-weight:500; color: var(--slate-600); transition: color .2s; }
+  .nav-links a:hover { color: var(--slate-900); }
+  .nav-right { display:flex; align-items:center; gap:12px; }
+  .nav-right .signin { font-size:14.5px; font-weight:600; color: var(--slate-700); text-decoration:none; padding:9px 14px; border-radius:var(--r-full); transition: background .2s; }
+  .nav-right .signin:hover { background: var(--slate-100); }
+
+  /* ============ HERO ============ */
+  .hero { position: relative; min-height: 100vh; display:flex; align-items:center; padding-top: 66px; overflow:hidden; }
+  .hero-grid-bg {
+    position:absolute; inset:0;
+    background-image: radial-gradient(circle at 1px 1px, rgba(99,102,241,.10) 1px, transparent 0);
+    background-size: 30px 30px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 30% 35%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 80% 70% at 30% 35%, #000 30%, transparent 75%);
+  }
+  .hero .wrap { position:relative; z-index:2; display:grid; grid-template-columns: 1.15fr .85fr; gap: 40px; align-items:center; }
+
+  .hero-pill {
+    display:inline-flex; align-items:center; gap:9px;
+    background: var(--indigo-50); color: var(--indigo-700);
+    border:1px solid var(--indigo-100); font-size:12px; font-weight:700;
+    letter-spacing:.14em; text-transform:uppercase; padding:8px 15px; border-radius:var(--r-full);
+    box-shadow: var(--sh-xs); white-space:nowrap;
+  }
+  .hero-pill .spark { color: var(--pink-500); }
+  h1.hero-h1 {
+    font-size: clamp(48px, 6.4vw, 86px); line-height: .95; letter-spacing: -.04em;
+    font-weight: 800; margin: 26px 0 0; color: var(--slate-900);
+  }
+  .hero-sub { font-size: clamp(17px,1.4vw,21px); line-height:1.55; color: var(--slate-600); max-width: 540px; margin: 24px 0 0; }
+  .hero-cta { display:flex; gap:14px; margin-top: 34px; flex-wrap:wrap; }
+  .metric-strip {
+    margin-top: 40px; display:flex; gap:0; align-items:stretch;
+    border:1px solid var(--slate-200); border-radius: var(--r-lg); overflow:hidden;
+    background: rgba(255,255,255,.6); backdrop-filter: blur(6px); box-shadow: var(--sh-sm); width: fit-content;
+  }
+  .metric-strip .m { padding: 14px 22px; }
+  .metric-strip .m + .m { border-left: 1px solid var(--slate-200); }
+  .metric-strip .m b { display:block; font-size:21px; font-weight:800; letter-spacing:-.02em; color: var(--slate-900); }
+  .metric-strip .m span { font-size:12.5px; color: var(--slate-500); }
+
+  /* ---- flowing ribbon ---- */
+  .ribbon-stage { position: relative; height: 540px; }
+  .ribbon-frame {
+    position:absolute; inset:-10% -30% -10% -5%;
+    filter: url(#goo) blur(8px);
+    opacity:.95;
+  }
+  .blob { position:absolute; border-radius:50%; mix-blend-mode: normal; will-change: transform; }
+  .b1 { width:340px; height:340px; background: radial-gradient(circle at 30% 30%, #FB923C, #EC4899 70%); top:2%; left:18%; animation: float1 11s var(--ease) infinite alternate; }
+  .b2 { width:380px; height:380px; background: radial-gradient(circle at 40% 40%, #8B5CF6, #6366F1 72%); top:24%; left:38%; animation: float2 13s var(--ease) infinite alternate; }
+  .b3 { width:300px; height:300px; background: radial-gradient(circle at 50% 50%, #EC4899, #8B5CF6 72%); top:46%; left:10%; animation: float3 9.5s var(--ease) infinite alternate; }
+  .b4 { width:320px; height:320px; background: radial-gradient(circle at 50% 50%, #22D3EE, #4F46E5 70%); top:50%; left:42%; animation: float4 12s var(--ease) infinite alternate; }
+  .b5 { width:240px; height:240px; background: radial-gradient(circle at 50% 50%, #F472B6, #C084FC 72%); top:8%; left:48%; animation: float1 10s var(--ease) infinite alternate-reverse; }
+  @keyframes float1 { to { transform: translate(-50px, 60px) scale(1.12); } }
+  @keyframes float2 { to { transform: translate(40px, -50px) scale(.9); } }
+  @keyframes float3 { to { transform: translate(60px, 40px) scale(1.15); } }
+  @keyframes float4 { to { transform: translate(-40px, -60px) scale(.95); } }
+  .ribbon-sheen {
+    position:absolute; inset:0; border-radius: 30px; pointer-events:none;
+    background: linear-gradient(130deg, rgba(255,255,255,.0) 40%, rgba(255,255,255,.25) 60%, transparent 80%);
+    mix-blend-mode: overlay;
+  }
+
+  /* floating glass status card over ribbon */
+  .float-card {
+    position:absolute; z-index:3; background: rgba(255,255,255,.72);
+    backdrop-filter: blur(20px) saturate(180%); border:1px solid rgba(255,255,255,.7);
+    border-radius: var(--r-lg); box-shadow: var(--sh-lg); padding:14px 16px;
+  }
+  .fc-1 { top: 60px; left: -28px; width: 250px; animation: bob 6s var(--ease) infinite alternate; }
+  .fc-2 { bottom: 56px; right: 6px; width: 232px; animation: bob 7s var(--ease) infinite alternate-reverse; }
+  @keyframes bob { to { transform: translateY(-12px); } }
+  .fc-row { display:flex; align-items:center; gap:10px; }
+  .fc-ic { width:34px; height:34px; border-radius:9px; display:grid; place-items:center; flex-shrink:0; }
+  .fc-ic svg { width:18px; height:18px; }
+  .fc-title { font-size:13.5px; font-weight:700; color: var(--slate-900); }
+  .fc-sub { font-size:12px; color: var(--slate-500); }
+  .fc-line { height:1px; background: var(--slate-200); margin:11px 0; }
+  .fc-resolved { display:flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; color:#047857; }
+
+  /* ============ SECTION SCAFFOLD ============ */
+  section { position: relative; }
+  .sec-pad { padding: 110px 0; }
+  .reveal { opacity:0; transform: translateY(22px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+  .reveal.in { opacity:1; transform:none; }
+  .sec-head { text-align:center; max-width: 680px; margin: 0 auto 60px; }
+  .sec-head h2 { font-size: clamp(34px,4vw,48px); letter-spacing:-.03em; font-weight:800; margin: 12px 0 0; line-height:1.05; }
+  .sec-head p { font-size:18px; color: var(--slate-600); line-height:1.6; margin: 18px 0 0; }
+
+  /* ---- logo strip ---- */
+  .logos { padding: 46px 0 10px; }
+  .logos p { text-align:center; font-size:12.5px; letter-spacing:.14em; text-transform:uppercase; color: var(--slate-400); font-weight:600; margin:0 0 26px; }
+  .logo-row { display:flex; justify-content:space-between; align-items:center; gap:24px; flex-wrap:wrap; opacity:.62; filter: grayscale(1); }
+  .logo-row .lg { font-weight:800; font-size:19px; letter-spacing:-.02em; color: var(--slate-500); display:flex; align-items:center; gap:7px; }
+  .logo-row .lg svg { width:20px; height:20px; }
+
+  /* ---- feature triad ---- */
+  .triad { display:grid; grid-template-columns: repeat(3,1fr); gap:22px; }
+  .feat {
+    background:#fff; border:1px solid var(--slate-200); border-radius: var(--r-xl); padding: 30px;
+    transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease);
+  }
+  .feat:hover { transform: translateY(-3px); box-shadow: var(--sh-glow); border-color: var(--indigo-100); }
+  .feat-ic { width:52px; height:52px; border-radius: 14px; display:grid; place-items:center; margin-bottom:20px; }
+  .feat-ic svg { width:25px; height:25px; color:#fff; }
+  .feat h3 { font-size:21px; letter-spacing:-.02em; margin:0 0 9px; font-weight:700; }
+  .feat p { font-size:15px; line-height:1.6; color: var(--slate-600); margin:0; }
+
+  /* ---- product demo ---- */
+  .demo-frame {
+    max-width: 1060px; margin: 0 auto; border-radius: 18px; overflow:hidden;
+    border:1px solid var(--slate-200); background:#fff;
+    box-shadow: 0 40px 90px -30px rgba(79,70,229,.35), 0 18px 40px -20px rgba(15,23,42,.18);
+  }
+  .demo-bar { height:42px; background: var(--slate-50); border-bottom:1px solid var(--slate-200); display:flex; align-items:center; padding:0 16px; gap:8px; }
+  .demo-bar .dot { width:11px; height:11px; border-radius:50%; }
+  .demo-url { margin-left: 14px; background:#fff; border:1px solid var(--slate-200); border-radius:7px; font-size:12px; color: var(--slate-500); padding:5px 12px; font-family: var(--font-mono); }
+  .demo-body { position:relative; min-height: 430px; background: var(--slate-50); padding: 22px; overflow:hidden; }
+
+  .dm-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .dm-title { font-weight:800; font-size:18px; letter-spacing:-.02em; }
+  .dm-live { display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:#047857; background: var(--emerald-50); padding:6px 12px; border-radius: var(--r-full); }
+  .leg {
+    background:#fff; border:1px solid var(--slate-200); border-radius: var(--r-md); padding:14px 16px; margin-bottom:10px;
+    display:flex; align-items:center; gap:14px; transition: all .4s var(--ease);
+  }
+  .leg .lic { width:38px; height:38px; border-radius:10px; display:grid; place-items:center; flex-shrink:0; }
+  .leg .lic svg { width:19px; height:19px; }
+  .leg .lt { flex:1; }
+  .leg .lt b { font-size:14.5px; display:block; }
+  .leg .lt span { font-size:12.5px; color: var(--slate-500); }
+
+  .dm-alert {
+    position:absolute; left:22px; right:22px; top:-120px; z-index:5;
+    background: linear-gradient(120deg, #FEF2F2, #FEE2E2); border:1px solid #FCA5A5;
+    border-radius: var(--r-md); padding:14px 16px; display:flex; align-items:center; gap:13px;
+    box-shadow: 0 14px 30px -8px rgba(239,68,68,.4); opacity:0; transition: all .5s var(--ease);
+  }
+  .dm-alert.show { top:22px; opacity:1; }
+  .dm-alert .sic { width:38px; height:38px; border-radius:10px; background:#EF4444; color:#fff; display:grid; place-items:center; flex-shrink:0; }
+  .dm-alert .sic svg { width:20px; height:20px; animation: spin 3s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .dm-alert b { font-size:14px; color:#991B1B; display:block; }
+  .dm-alert span { font-size:12.5px; color:#B91C1C; }
+
+  .dm-options { position:absolute; left:22px; right:22px; top:104px; z-index:4; opacity:0; transition: opacity .5s var(--ease); }
+  .dm-options.show { opacity:1; }
+  .opt {
+    background:#fff; border:1px solid var(--slate-200); border-radius: var(--r-md); padding:13px 15px; margin-bottom:9px;
+    display:flex; align-items:center; gap:14px; transform: translateY(14px); opacity:0;
+    transition: all .45s var(--ease), border-color .25s, box-shadow .25s;
+  }
+  .dm-options.show .opt { transform:none; opacity:1; }
+  .dm-options.show .opt:nth-child(2){ transition-delay:.08s; }
+  .dm-options.show .opt:nth-child(3){ transition-delay:.16s; }
+  .opt.picked { border-color: var(--indigo-500); box-shadow: 0 0 0 3px rgba(99,102,241,.16); }
+  .opt .oair { font-weight:700; font-size:14.5px; flex:1; }
+  .opt .oprice { font-weight:800; font-size:17px; letter-spacing:-.02em; }
+  .opt .ometa { font-size:12px; color: var(--slate-500); }
+
+  .dm-recovered {
+    position:absolute; inset:0; background: rgba(248,250,252,.86); backdrop-filter: blur(3px);
+    display:grid; place-items:center; opacity:0; pointer-events:none; transition: opacity .5s var(--ease); z-index:6;
+  }
+  .dm-recovered.show { opacity:1; }
+  .rec-card { text-align:center; }
+  .rec-check { width:72px; height:72px; border-radius:50%; background: var(--emerald-500); display:grid; place-items:center; margin:0 auto 18px; box-shadow: 0 16px 40px -10px rgba(16,185,129,.6); animation: pop .5s var(--ease); }
+  @keyframes pop { 0% { transform: scale(.4); opacity:0; } 100% { transform: scale(1); opacity:1; } }
+  .rec-check svg { width:38px; height:38px; color:#fff; }
+  .rec-card b { font-size:22px; letter-spacing:-.02em; display:block; }
+  .rec-card span { font-size:14px; color: var(--slate-600); }
+
+  /* ---- alternating long-form ---- */
+  .lf { display:grid; grid-template-columns: 1fr 1fr; gap:64px; align-items:center; }
+  .lf.rev .lf-text { order:2; }
+  .lf + .lf { margin-top: 120px; }
+  .lf-text h3 { font-size: clamp(28px,3vw,38px); letter-spacing:-.03em; font-weight:800; line-height:1.08; margin:14px 0 0; }
+  .lf-text p { font-size:17px; line-height:1.65; color: var(--slate-600); margin:18px 0 0; }
+  .lf-text ul { list-style:none; padding:0; margin:24px 0 0; display:flex; flex-direction:column; gap:12px; }
+  .lf-text li { display:flex; align-items:flex-start; gap:11px; font-size:15px; color: var(--slate-700); }
+  .lf-text li .ck { width:21px; height:21px; border-radius:6px; background: var(--indigo-50); color: var(--indigo-600); display:grid; place-items:center; flex-shrink:0; margin-top:1px; }
+  .lf-text li .ck svg { width:13px; height:13px; }
+  .lf-visual { border-radius: var(--r-2xl); overflow:hidden; border:1px solid var(--slate-200); box-shadow: var(--sh-lg); aspect-ratio: 4/3.1; position:relative; }
+
+  /* ---- big quote ---- */
+  .quote-card {
+    max-width: 920px; margin:0 auto; background: linear-gradient(135deg, #faf5ff, #eef2ff);
+    border:1px solid var(--indigo-100); border-radius: var(--r-2xl); padding: 56px; text-align:center; position:relative; overflow:hidden;
+  }
+  .quote-card .qmark { font-size:120px; font-weight:800; color: var(--violet-400); opacity:.32; position:absolute; top:-10px; left:34px; font-family:Georgia,serif; line-height:1; }
+  .quote-card blockquote { font-size: clamp(22px,2.4vw,30px); line-height:1.4; letter-spacing:-.02em; font-weight:600; font-style:italic; color: var(--slate-800); margin:0; position:relative; z-index:1; }
+  .quote-by { display:flex; align-items:center; justify-content:center; gap:13px; margin-top:30px; }
+  .quote-av { width:46px; height:46px; border-radius:50%; background: var(--grad-brand); display:grid; place-items:center; color:#fff; font-weight:700; }
+  .quote-by .qn b { display:block; font-size:15px; }
+  .quote-by .qn span { font-size:13px; color: var(--slate-500); }
+
+  /* ---- pricing ---- */
+  .price-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:22px; align-items:stretch; }
+  .price {
+    background:#fff; border:1px solid var(--slate-200); border-radius: var(--r-2xl); padding: 32px; display:flex; flex-direction:column;
+    transition: transform .3s var(--ease), box-shadow .3s var(--ease);
+  }
+  .price:hover { transform: translateY(-4px); box-shadow: var(--sh-lg); }
+  .price.feature { border:1.5px solid transparent; background:
+     linear-gradient(#fff,#fff) padding-box,
+     var(--grad-brand) border-box; box-shadow: var(--sh-glow); position:relative; }
+  .price.feature::before { content:'MOST POPULAR'; position:absolute; top:-11px; left:50%; transform:translateX(-50%); background: var(--grad-brand); color:#fff; font-size:10.5px; font-weight:700; letter-spacing:.12em; padding:5px 13px; border-radius: var(--r-full); }
+  .price .pname { font-size:14px; font-weight:700; letter-spacing:.02em; color: var(--indigo-600); }
+  .price .pprice { font-size:46px; font-weight:800; letter-spacing:-.03em; margin:14px 0 2px; }
+  .price .pprice small { font-size:16px; font-weight:600; color: var(--slate-400); }
+  .price .pdesc { font-size:14px; color: var(--slate-500); min-height:40px; }
+  .price ul { list-style:none; padding:0; margin:22px 0; display:flex; flex-direction:column; gap:12px; flex:1; }
+  .price li { display:flex; gap:10px; align-items:flex-start; font-size:14.5px; color: var(--slate-700); }
+  .price li svg { width:17px; height:17px; color: var(--emerald-500); flex-shrink:0; margin-top:2px; }
+
+  /* ---- final CTA ---- */
+  .final-cta { padding: 120px 32px; }
+  .fc-box {
+    max-width: 1100px; margin:0 auto; border-radius: var(--r-2xl); padding: 80px 48px; text-align:center; position:relative; overflow:hidden;
+    background: radial-gradient(120% 140% at 20% 0%, #4F46E5 0%, #6D28D9 42%, #BE185D 100%);
+    box-shadow: 0 40px 100px -30px rgba(79,70,229,.6);
+  }
+  .fc-box .glow { position:absolute; inset:0; background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,.12) 1px, transparent 0); background-size:26px 26px; }
+  .fc-box h2 { color:#fff; font-size: clamp(34px,4.4vw,56px); letter-spacing:-.03em; font-weight:800; line-height:1.04; margin:0; position:relative; }
+  .fc-box p { color: rgba(255,255,255,.82); font-size:18px; margin:20px 0 36px; position:relative; }
+  .btn-white { background:#fff; color: var(--indigo-700); }
+  .btn-white:hover { transform: translateY(-2px); box-shadow: 0 16px 40px -10px rgba(0,0,0,.3); }
+
+  /* ---- footer ---- */
+  footer { border-top:1px solid var(--slate-200); padding: 64px 0 40px; background: var(--slate-50); }
+  .foot-grid { display:grid; grid-template-columns: 1.6fr repeat(4,1fr); gap:40px; }
+  .foot-brand p { font-size:14px; color: var(--slate-500); line-height:1.6; margin:16px 0 20px; max-width:260px; }
+  .foot-soc { display:flex; gap:10px; }
+  .foot-soc a { width:36px; height:36px; border-radius:9px; border:1px solid var(--slate-200); display:grid; place-items:center; color: var(--slate-500); transition: all .2s; background:#fff; }
+  .foot-soc a:hover { color: var(--indigo-600); border-color: var(--indigo-200); transform: translateY(-2px); }
+  .foot-soc a svg { width:17px; height:17px; }
+  .foot-col h4 { font-size:13px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color: var(--slate-400); margin:0 0 16px; }
+  .foot-col a { display:block; font-size:14.5px; color: var(--slate-600); text-decoration:none; margin-bottom:11px; transition: color .2s; }
+  .foot-col a:hover { color: var(--indigo-600); }
+  .foot-bottom { display:flex; justify-content:space-between; align-items:center; margin-top:48px; padding-top:24px; border-top:1px solid var(--slate-200); font-size:13px; color: var(--slate-400); }
+
+  @media (max-width: 980px) {
+    .hero .wrap { grid-template-columns: 1fr; } .ribbon-stage { display:none; }
+    .triad, .price-grid { grid-template-columns: 1fr; }
+    .lf { grid-template-columns: 1fr; } .lf.rev .lf-text { order:0; }
+    .nav-links { display:none; } .foot-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- SVG filters for the flowing ribbon -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <filter id="goo">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="18" result="blur"/>
+      <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -8" result="goo"/>
+      <feBlend in="SourceGraphic" in2="goo"/>
+    </filter>
+  </defs>
+</svg>
+
+<!-- ============ NAV ============ -->
+<nav class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="/index.html">
+      <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span>
+      SkySaver <span style="font-weight:500;color:var(--slate-400)">AI</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="/auth.html">Docs</a>
+    </div>
+    <div class="nav-right">
+      <a class="signin" href="/auth.html">Sign in</a>
+      <a class="btn btn-primary btn-sm" href="/auth.html">Get started — free</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============ HERO ============ -->
+<header class="hero">
+  <div class="hero-grid-bg"></div>
+  <div class="wrap">
+    <div class="hero-left">
+      <span class="hero-pill"><span class="spark">✦</span> Travel that handles itself</span>
+      <h1 class="hero-h1">Meet your<br><span class="grad-text">travel guardian.</span></h1>
+      <p class="hero-sub">When your flight cancels at 2am, SkySaver has already booked your alternative. Powered by Gemini, watching every itinerary 24/7.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary btn-lg" href="/auth.html">Get started — free
+          <svg viewBox="0 0 24 24" width="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a class="btn btn-ghost btn-lg" href="#how">
+          <svg viewBox="0 0 24 24" width="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M10 8l6 4-6 4z" fill="currentColor"/></svg>
+          See how it works</a>
+      </div>
+    </div>
+
+    <div class="ribbon-stage">
+      <div class="ribbon-frame">
+        <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div><div class="blob b4"></div><div class="blob b5"></div>
+      </div>
+      <div class="ribbon-sheen"></div>
+
+      <div class="float-card fc-1">
+        <div class="fc-row">
+          <div class="fc-ic" style="background:var(--red-50);color:var(--red-500)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+          </div>
+          <div><div class="fc-title">EK308 cancelled</div><div class="fc-sub">DXB → SIN · detected 2:04am</div></div>
+        </div>
+        <div class="fc-line"></div>
+        <div class="fc-resolved">
+          <svg viewBox="0 0 24 24" width="15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Rebooked onto SQ305 · 30s
+        </div>
+      </div>
+
+      <div class="float-card fc-2">
+        <div class="fc-row">
+          <div class="fc-ic" style="background:var(--emerald-50);color:var(--emerald-500)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <div><div class="fc-title">All systems watching</div><div class="fc-sub">4 legs · 0 conflicts</div></div>
+        </div>
+        <div class="fc-line"></div>
+        <div style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--slate-500)">
+          <span class="ping"><i></i></span> Live · last check 09:41:22 UTC
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+
+<!-- ============ FEATURES ============ -->
+<section class="sec-pad" id="features">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Why SkySaver</span>
+      <h2>It thinks three moves ahead.</h2>
+      <p>Most apps tell you your flight is cancelled. SkySaver has already found the fix, checked it against your whole trip, and is waiting with the answer.</p>
+    </div>
+    <div class="triad">
+      <div class="feat reveal">
+        <div class="feat-ic" style="background:linear-gradient(135deg,#3B82F6,#6366F1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <h3>24/7 monitoring</h3>
+        <p>Real-time flight, hotel, and transit status. Disruptions surfaced before they catch you — usually before the airline emails you.</p>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-ic" style="background:linear-gradient(135deg,#8B5CF6,#C084FC)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5a3 3 0 1 0-5.99.1A3 3 0 0 0 4 11a3 3 0 0 0 1 5.83A3 3 0 0 0 12 19m0-14a3 3 0 1 1 5.99.1A3 3 0 0 1 20 11a3 3 0 0 1-1 5.83A3 3 0 0 1 12 19m0-14v14"/></svg>
+        </div>
+        <h3>Cascade-aware planning</h3>
+        <p>Every alternative shows the ripple effect across your trip — hotel check-in, meeting buffer, downstream connections — before you commit.</p>
+      </div>
+      <div class="feat reveal">
+        <div class="feat-ic" style="background:linear-gradient(135deg,#EC4899,#F59E0B)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
+        </div>
+        <h3>One-tap recovery</h3>
+        <p>Pick an option. SkySaver updates everything downstream and hands you off to pay — then reads your confirmation and files it automatically.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PRODUCT DEMO ============ -->
+<section class="sec-pad" id="how" style="padding-top:20px;">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="eyebrow">Watch it work</span>
+      <h2>A flight cancels. Watch what happens.</h2>
+      <p>This is the real product loop — no narration needed. Detection, alternatives, cascade check, recovery.</p>
+    </div>
+    <div class="demo-frame reveal">
+      <div class="demo-bar">
+        <span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span>
+        <span class="demo-url">app.skysaver.ai/trip/dxb-sin</span>
+      </div>
+      <div class="demo-body" id="demoBody">
+        <div class="dm-head">
+          <div class="dm-title">Dubai → Singapore</div>
+          <div class="dm-live"><span class="ping"><i></i></span> Live · watching 2 flights</div>
+        </div>
+
+        <div class="leg" id="leg1">
+          <div class="lic" style="background:var(--flight-to);color:var(--flight-ink)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></div>
+          <div class="lt"><b>EK308 — DXB → SIN</b><span>Sat 14 Jun · 22:00 → 09:30 UTC</span></div>
+          <span class="badge badge-success" id="leg1badge">On time</span>
+        </div>
+        <div class="leg">
+          <div class="lic" style="background:var(--hotel-to);color:var(--hotel-ink)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4v16M2 8h18a2 2 0 0 1 2 2v10M2 17h20M6 8V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2"/></svg></div>
+          <div class="lt"><b>Marina Bay Sands</b><span>Check-in Sun 15 Jun · 14:00</span></div>
+          <span class="badge badge-neutral">Booked</span>
+        </div>
+        <div class="leg">
+          <div class="lic" style="background:var(--meeting-to);color:var(--meeting-ink)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+          <div class="lt"><b>Investor sync — Raffles Place</b><span>Mon 16 Jun · 10:00</span></div>
+          <span class="badge badge-info">Buffer 18h</span>
+        </div>
+
+        <!-- injected states -->
+        <div class="dm-alert" id="dmAlert">
+          <div class="sic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg></div>
+          <div style="flex:1"><b>EK308 cancelled by carrier</b><span>Searching Google Flights for alternatives that fit your trip…</span></div>
+        </div>
+
+        <div class="dm-options" id="dmOptions">
+          <div class="opt" id="opt1"><div class="oair">Singapore Airlines · SQ305<div class="ometa">DXB → SIN · 7h 25m · nonstop</div></div><span class="badge badge-success">Low risk</span><div class="oprice">$540</div></div>
+          <div class="opt"><div class="oair">Qatar Airways · QR1376<div class="ometa">DXB → DOH → SIN · 11h 10m · 1 stop</div></div><span class="badge badge-warn">Tight buffer</span><div class="oprice">$478</div></div>
+          <div class="opt"><div class="oair">Emirates · EK354<div class="ometa">DXB → SIN · 7h 40m · nonstop</div></div><span class="badge badge-info">Shifts hotel</span><div class="oprice">$612</div></div>
+        </div>
+
+        <div class="dm-recovered" id="dmRecovered">
+          <div class="rec-card">
+            <div class="rec-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+            <b>Rebooked onto SQ305</b>
+            <span>Hotel shifted 2h later. Meeting still on time.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ LONG-FORM ============ -->
+<section class="sec-pad">
+  <div class="wrap">
+    <div class="lf reveal">
+      <div class="lf-text">
+        <span class="eyebrow">Plan once</span>
+        <h3>Plan once. Travel without thinking.</h3>
+        <p>Add your flights, stays, ground transport, and meetings. SkySaver holds the whole shape of your trip in mind — and knows what depends on what.</p>
+        <ul>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> One intake captures preferences once — seat class, layover tolerance, hotel tier.</li>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Every leg is connected — change one and SkySaver re-checks the rest.</li>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> No spreadsheets. No 11 browser tabs. One coherent itinerary.</li>
+        </ul>
+      </div>
+      <div class="lf-visual" data-ph="Plan wizard — step view"></div>
+    </div>
+
+    <div class="lf rev reveal">
+      <div class="lf-text">
+        <span class="eyebrow">When things break</span>
+        <h3>When something breaks, you'll already have an answer.</h3>
+        <p>SkySaver doesn't just alert you. It ranks alternatives against your stored preferences and shows the cascade — exactly what each option does to your hotel, your meeting, your connections.</p>
+        <ul>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Best-for-you ranking, not just cheapest or fastest.</li>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Cascade preview before you commit a single dollar.</li>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Severity badges: low risk, tight buffer, shifts hotel — at a glance.</li>
+        </ul>
+      </div>
+      <div class="lf-visual" data-ph="Recovery panel — ranked options"></div>
+    </div>
+
+    <div class="lf reveal">
+      <div class="lf-text">
+        <span class="eyebrow">Under the hood</span>
+        <h3>Powered by Gemini. Watched by MongoDB MCP.</h3>
+        <p>Gemini 2.5 Flash reads your booking PDFs, reasons over your trip, and answers your questions. The MongoDB MCP server keeps every leg coherent in real time.</p>
+        <ul>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Upload a confirmation — Gemini Vision OCR fills the form for you.</li>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Ask anything in plain language — it reads your live trip to answer.</li>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span> Polls every 10 seconds. You'll never be the last to know.</li>
+        </ul>
+      </div>
+      <div class="lf-visual" data-ph="Chat assistant — Gemini"></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ FINAL CTA ============ -->
+<section class="final-cta">
+  <div class="fc-box reveal">
+    <div class="glow"></div>
+    <h2>Start watching your<br>next trip.</h2>
+    <p>It takes two minutes to add a trip. After that, you can stop thinking about it.</p>
+    <a class="btn btn-white btn-lg" href="/auth.html">Get started — free
+      <svg viewBox="0 0 24 24" width="17" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="wrap">
+    <div class="foot-bottom" style="padding: 24px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <a class="brand" href="/index.html" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none;">
+        <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></svg></span>
+        SkySaver <span style="font-weight:500;color:var(--slate-400)">AI</span>
+      </a>
+      <span class="mono" style="color: var(--slate-500); font-size: 12.5px;">Gemini 2.5 Flash · MongoDB Atlas · MCP Server · SerpAPI</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // nav scroll state
+  const nav = document.getElementById('nav');
+  addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 80), {passive:true});
+
+  // reveal on scroll
+  const io = new IntersectionObserver((es) => {
+    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, {threshold:.14});
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // placeholder visuals (striped + label)
+  document.querySelectorAll('.lf-visual[data-ph]').forEach(v => {
+    v.style.background = 'repeating-linear-gradient(135deg,#F8FAFC,#F8FAFC 14px,#F1F5F9 14px,#F1F5F9 28px)';
+    v.innerHTML = '<div style="position:absolute;inset:0;display:grid;place-items:center;"><span style="font-family:var(--font-mono);font-size:13px;color:var(--slate-400);background:#fff;padding:7px 14px;border-radius:8px;border:1px solid var(--slate-200)">'+v.dataset.ph+'</span></div>';
+  });
+
+  // ===== demo loop =====
+  const alert = document.getElementById('dmAlert');
+  const options = document.getElementById('dmOptions');
+  const recovered = document.getElementById('dmRecovered');
+  const leg1 = document.getElementById('leg1');
+  const leg1badge = document.getElementById('leg1badge');
+  const opt1 = document.getElementById('opt1');
+
+  const legs = [...document.querySelectorAll('#demoBody .leg')];
+  function resetDemo() {
+    alert.classList.remove('show'); options.classList.remove('show');
+    recovered.classList.remove('show'); opt1.classList.remove('picked');
+    leg1.style.opacity = '1'; leg1.style.filter = 'none';
+    legs.forEach(l => { l.style.transition='opacity .4s var(--ease)'; l.style.opacity='1'; });
+    leg1badge.className = 'badge badge-success'; leg1badge.textContent = 'On time';
+  }
+  function runDemo() {
+    resetDemo();
+    setTimeout(() => { leg1badge.className='badge badge-danger'; leg1badge.textContent='Cancelled'; leg1.style.opacity='.5'; leg1.style.filter='grayscale(.4)'; }, 1600);
+    setTimeout(() => alert.classList.add('show'), 1900);
+    setTimeout(() => { options.classList.add('show'); legs.forEach((l,i) => { if(i>0) l.style.opacity='0'; }); }, 3400);
+    setTimeout(() => opt1.classList.add('picked'), 6200);
+    setTimeout(() => recovered.classList.add('show'), 7400);
+    setTimeout(runDemo, 11500);
+  }
+  // start when demo enters view
+  const demoIO = new IntersectionObserver((es) => {
+    es.forEach(e => { if (e.isIntersecting) { runDemo(); demoIO.disconnect(); } });
+  }, {threshold:.3});
+  demoIO.observe(document.getElementById('demoBody'));
+</script>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" rx="20" fill="#4F46E5"/><path d="M68 64 62 42l9-9c4-4 5-9 4-11-3-1-7 0-11 4l-9 9-22-5c-1 0-2 0-3 1l-1 2c0 1 0 2 1 3l14 9-5 8h-8l-3 3 8 5 5 8 3-3v-8l8-5 9 14c1 1 2 1 3 1l2-1c1-1 1-2 1-3z" fill="#fff"/></svg>
+</template>
+</body>
+</html>
