@@ -215,7 +215,9 @@ def log_disruption(trip_id: str, disruption: dict[str, Any]) -> bool:
 # User accounts
 # ---------------------------------------------------------------------------
 
-import hashlib  # noqa: E402  (kept near user code for clarity)
+import hashlib  # noqa: E402
+import hmac  # noqa: E402
+import secrets  # noqa: E402
 
 
 def get_users_collection() -> Collection:
@@ -223,16 +225,27 @@ def get_users_collection() -> Collection:
     return get_db()[_USERS_COLLECTION]
 
 
-def _hash_password(password: str, salt: str = "skysaver-static-salt-2026") -> str:
-    """Hash a password with SHA-256 + a static salt.
+def _hash_password(password: str) -> str:
+    """Store passwords using scrypt with a unique cryptographic random salt."""
+    salt = secrets.token_bytes(16)
+    digest = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=2**14, r=8, p=1)
+    return f"scrypt$16384$8$1$${salt.hex()}$${digest.hex()}"
 
-    This is deliberately simple for a hackathon demo. Production code should
-    use bcrypt/argon2 with a per-user random salt. The hash is one-way — the
-    plain password is never stored or recoverable.
-    """
-    h = hashlib.sha256()
-    h.update((salt + password).encode("utf-8"))
-    return h.hexdigest()
+
+def _verify_password(password: str, stored: str) -> bool:
+    """Verify current hashes, migrating valid older demo hashes on login."""
+    try:
+        if stored.startswith("scrypt$"):
+            _, n, r, p, salt_hex, digest_hex = stored.split("$")
+            candidate = hashlib.scrypt(
+                password.encode("utf-8"), salt=bytes.fromhex(salt_hex),
+                n=int(n), r=int(r), p=int(p))
+            return hmac.compare_digest(candidate, bytes.fromhex(digest_hex))
+        # Backwards compatibility only: upgrade legacy hashes after successful login.
+        legacy = hashlib.sha256(("skysaver-static-salt-2026" + password).encode("utf-8")).hexdigest()
+        return hmac.compare_digest(legacy, stored)
+    except (ValueError, TypeError):
+        return False
 
 
 def create_user(name: str, email: str, password: str) -> dict[str, Any] | None:
@@ -263,8 +276,11 @@ def authenticate_user(email: str, password: str) -> dict[str, Any] | None:
     user = coll.find_one({"email": email})
     if user is None:
         return None
-    if user.get("password_hash") != _hash_password(password):
+    if not _verify_password(password, user.get("password_hash", "")):
         return None
+    if not user["password_hash"].startswith("scrypt$"):
+        coll.update_one({"email": email, "password_hash": user["password_hash"]},
+                        {"$set": {"password_hash": _hash_password(password)}})
     coll.update_one(
         {"email": email},
         {
