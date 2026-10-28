@@ -219,3 +219,9 @@ __marimo__/
 
 # SkySaver
 .flight_cache/
+
+# Ignore all local environment variants and credentials
+.env.*
+!.env.example
+*.pem
+*.key
